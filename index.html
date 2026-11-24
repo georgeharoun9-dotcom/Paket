@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Paket</title>
+  <meta name="description" content="Håll koll på dina paket – skanna, spåra och arkivera.">
+  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Paket">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-row">
+      <button class="icon-btn" id="btn-settings" aria-label="Inställningar">
+        <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7Zm7.4-2.5a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3h-4l-.3 2.5a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1L11 21h4l.3-2.5c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4-2-1.6Z"/></svg>
+      </button>
+      <div class="top-actions">
+        <button class="icon-btn" id="btn-refresh" aria-label="Uppdatera livestatus" hidden>
+          <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
+        </button>
+        <button class="icon-btn accent" id="btn-add" aria-label="Lägg till paket">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+    <h1 id="title">Paket</h1>
+    <div class="segmented" role="tablist">
+      <button role="tab" data-view="active" aria-selected="true">Aktiva <span id="count-active"></span></button>
+      <button role="tab" data-view="archive" aria-selected="false">Arkiv <span id="count-archive"></span></button>
+    </div>
+    <input type="search" id="search" placeholder="Sök namn, nummer eller anteckning" autocomplete="off">
+  </header>
+
+  <main>
+    <ul id="list" class="list"></ul>
+    <div id="empty" class="empty" hidden></div>
+  </main>
+
+  <!-- Detalj -->
+  <dialog id="dlg-detail" class="sheet">
+    <div class="sheet-head">
+      <button class="link" data-close>Klar</button>
+      <button class="link" id="detail-edit">Redigera</button>
+    </div>
+    <div class="sheet-body">
+      <div class="detail-hero">
+        <span class="badge big" id="d-badge"></span>
+        <h2 id="d-name"></h2>
+        <button class="number" id="d-number" title="Kopiera"></button>
+        <p class="status" id="d-status"></p>
+      </div>
+      <a class="btn primary" id="d-open" target="_blank" rel="noopener">Öppna spårning hos <span id="d-carrier"></span></a>
+      <section class="group" id="d-live" hidden>
+        <div class="group-title">
+          <span>Händelser</span>
+          <button class="link" id="d-live-refresh">Uppdatera</button>
+        </div>
+        <ol class="events" id="d-events"></ol>
+      </section>
+      <section class="group">
+        <label class="group-title" for="d-notes">Anteckningar</label>
+        <textarea id="d-notes" rows="4" placeholder="T.ex. vad som är i paketet, utlämningsställe, kod…"></textarea>
+      </section>
+      <div class="actions">
+        <button class="btn" id="d-archive"></button>
+        <button class="btn danger" id="d-delete">Ta bort</button>
+      </div>
+      <p class="meta" id="d-meta"></p>
+    </div>
+  </dialog>
+
+  <!-- Lägg till / redigera -->
+  <dialog id="dlg-edit" class="sheet">
+    <form method="dialog" id="form-edit">
+      <div class="sheet-head">
+        <button class="link" type="button" data-close>Avbryt</button>
+        <strong id="edit-title">Nytt paket</strong>
+        <button class="link bold" type="submit">Spara</button>
+      </div>
+      <div class="sheet-body">
+        <div class="field-group">
+          <label>Spårningsnummer
+            <div class="with-btn">
+              <input name="number" id="f-number" required autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Skriv eller skanna">
+              <button type="button" class="icon-btn" id="btn-scan" aria-label="Skanna streckkod">
+                <svg viewBox="0 0 24 24"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>
+              </button>
+            </div>
+          </label>
+          <label>Namn
+            <input name="name" id="f-name" placeholder="T.ex. Nya skor" autocomplete="off">
+          </label>
+          <label>Fraktbolag
+            <select name="carrier" id="f-carrier"></select>
+          </label>
+          <p class="hint" id="f-detected"></p>
+        </div>
+        <div class="field-group">
+          <label>Anteckningar
+            <textarea name="notes" id="f-notes" rows="3"></textarea>
+          </label>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Skanner -->
+  <dialog id="dlg-scan" class="scanner">
+    <video id="scan-video" playsinline muted></video>
+    <div class="scan-frame"></div>
+    <p class="scan-msg" id="scan-msg">Rikta kameran mot streckkoden</p>
+    <button class="btn" id="scan-cancel">Avbryt</button>
+  </dialog>
+
+  <!-- Inställningar -->
+  <dialog id="dlg-settings" class="sheet">
+    <form method="dialog" id="form-settings">
+      <div class="sheet-head">
+        <button class="link" type="button" data-close>Avbryt</button>
+        <strong>Inställningar</strong>
+        <button class="link bold" type="submit">Spara</button>
+      </div>
+      <div class="sheet-body">
+        <h3 class="section">Livestatus</h3>
+        <div class="field-group">
+          <label>Spårningstjänst
+            <select name="liveProvider" id="s-provider"></select>
+          </label>
+          <label>API-nyckel
+            <input name="liveKey" id="s-key" type="password" autocomplete="off" spellcheck="false">
+          </label>
+          <p class="hint" id="s-key-help"></p>
+          <label>Proxy-URL (valfri)
+            <input name="liveProxy" id="s-proxy" type="url" placeholder="https://min-proxy.example/?url=" autocomplete="off">
+          </label>
+          <label class="row">
+            <span>Uppdatera automatiskt vid start</span>
+            <input type="checkbox" name="liveAuto" id="s-auto">
+          </label>
+        </div>
+        <p class="hint">Nyckeln sparas bara i den här webbläsaren och skickas endast till vald tjänst (eller din proxy). Den finns aldrig i appens kod.</p>
+
+        <h3 class="section">Data</h3>
+        <div class="field-group buttons">
+          <button type="button" class="btn" id="s-export">Exportera säkerhetskopia</button>
+          <button type="button" class="btn" id="s-import">Importera säkerhetskopia</button>
+          <input type="file" id="s-import-file" accept="application/json,.json" hidden>
+          <button type="button" class="btn danger" id="s-clear">Radera all data</button>
+        </div>
+        <p class="meta" id="s-version"></p>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" popover="manual"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
